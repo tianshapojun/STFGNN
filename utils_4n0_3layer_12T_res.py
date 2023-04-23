@@ -6,7 +6,7 @@ import mxnet as mx
 import pandas as pd
 
 
-def construct_model(config):
+def construct_model(config,new=0):
     from models.stsgcn_4n_res import stsgcn
 
     module_type = config['module_type']
@@ -25,8 +25,11 @@ def construct_model(config):
     if id_filename is not None:
         if not os.path.exists(id_filename):
             id_filename = None
-
-    adj = get_adjacency_matrix(adj_filename, num_of_vertices,
+    
+    if new == 1:
+        adj = get_adjacency_matrix_new(adj_filename)
+    else:
+        adj = get_adjacency_matrix(adj_filename, num_of_vertices,
                                id_filename=id_filename)
     #adj_mx = construct_adj(adj, 3)
     adj_dtw = np.array(pd.read_csv(config['adj_dtw_filename'], header=None))
@@ -69,6 +72,17 @@ def construct_model(config):
     )[1][1] == (batch_size, num_for_predict, num_of_vertices)
     return net
 
+def get_adjacency_matrix_new(distance_df_filename):
+    A = np.load(distance_df_filename)
+    for i in range(A.shape[0]):
+        A[i,i] = 0
+        for j in range(i+1,A.shape[1]):
+            try:
+                A[i,j] = 1/A[i,j]
+            except:
+                A[i,j] = 0
+            A[j,i] = A[i,j]
+    return A
 
 def get_adjacency_matrix(distance_df_filename, num_of_vertices,
                          type_='connectivity', id_filename=None):
