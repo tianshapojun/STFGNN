@@ -50,7 +50,7 @@ def compute_dtw(a,b,order=1,Ts=12,normal=True):
     return D[-1,-1]**(1.0/order)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--dataset", type=str, default="PEMS08", help="Dataset path.")
+parser.add_argument("--dataset", type=str, default="samples_modified", help="Dataset path.")
 parser.add_argument("--order", type=int, default=1, help="DTW order.")
 parser.add_argument("--lag", type=int, default=12, help="Fast DTW search lag.")
 parser.add_argument("--period", type=int, default=288, help="Time series perios.")
@@ -58,7 +58,7 @@ parser.add_argument("--sparsity", type=float, default=0.01, help="sparsity of sp
 
 args = parser.parse_args()
 
-df = np.load(args.dataset+'/'+args.dataset+".npz")['data']
+df = np.load('./Macro_Data/'+args.dataset+".npy")
 num_samples,ndim,_ = df.shape
 num_train = int(num_samples * 0.6)
 num_dtw=int(num_train/args.period)*args.period
@@ -75,10 +75,10 @@ for i in range(ndim):
 
 dtw=d+d.T
 
-np.save("./newdataset/"+args.dataset+"-dtw-"+str(args.period)+'-'+str(args.order)+"-.npy",dtw)
+np.save("/content/gdrive/MyDrive/Data/TrafficFlow/Macro_Data/Generated/"+args.dataset+"-dtw-"+str(args.period)+'-'+str(args.order)+"-.npy",dtw)
 print("The calculation of time series is done!")
 
-adj = np.load("./newdataset/"+args.dataset+"-dtw-"+str(args.period)+'-'+str(args.order)+"-.npy")
+adj = np.load("/content/gdrive/MyDrive/Data/TrafficFlow/Macro_Data/Generated/"+args.dataset+"-dtw-"+str(args.period)+'-'+str(args.order)+"-.npy")
 adj = adj+ adj.T
 
 w_adj = np.zeros([ndim,ndim])
@@ -101,6 +101,6 @@ for i in range(ndim):
 print("Total route number: ", ndim)
 print("Sparsity of adj: ", len(w_adj.nonzero()[0])/(ndim*ndim))
 
-pd.DataFrame(w_adj).to_csv("./newdataset/adj_tg_"+args.dataset+".csv", index = False, header=None)
+pd.DataFrame(w_adj).to_csv("/content/gdrive/MyDrive/Data/TrafficFlow/Macro_Data/Generated/adj_tg_"+args.dataset+".csv", index = False, header=None)
 
 print("The weighted matrix of temporal graph is generated!")
