@@ -24,7 +24,9 @@ with open(config_filename, 'r') as f:
 
 print(json.dumps(config, sort_keys=True, indent=4))
 
-net = construct_model(config)
+#new = 0,initial data;new = 1,own data;
+new = 0
+net = construct_model(config,new)
 
 batch_size = config['batch_size']
 num_of_vertices = config['num_of_vertices']
@@ -36,7 +38,7 @@ elif isinstance(config['ctx'], int):
 
 loaders = []
 true_values = []
-for idx, (x, y) in enumerate(generate_data(graph_signal_matrix_filename)):
+for idx, (x, y) in enumerate(generate_data(graph_signal_matrix_filename,is_new = new)):
     if args.test:
         x = x[: 100]
         y = y[: 100]
