@@ -74,7 +74,7 @@ def construct_model(config,new=0):
     return net
 
 def get_adjacency_matrix_new(distance_df_filename):
-    A = np.load(distance_df_filename)
+    A = np.load(distance_df_filename,allow_pickle=True)
     for i in range(A.shape[0]):
         A[i,i] = 0
         for j in range(i+1,A.shape[1]):
