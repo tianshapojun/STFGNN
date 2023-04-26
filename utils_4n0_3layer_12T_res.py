@@ -238,14 +238,17 @@ def generate_from_train_val_test(data, transformer):
         yield (x - mean) / std, y
 
 
-def generate_from_data(data, length, transformer):
+def generate_from_data(data, length, transformer,isnew):
     mean = None
     std = None
     train_line, val_line = int(length * 0.6), int(length * 0.8)
     for line1, line2 in ((0, train_line),
                          (train_line, val_line),
                          (val_line, length)):
-        x, y = generate_seq(data['data'][line1: line2], 12, 12)
+        if isnew ==1:
+            x, y = generate_seq(data[line1: line2], 12, 12)
+        else:
+            x, y = generate_seq(data['data'][line1: line2], 12, 12)
         if transformer:
             x = transformer(x)
             y = transformer(y)
@@ -256,21 +259,26 @@ def generate_from_data(data, length, transformer):
         yield (x - mean) / std, y
 
 
-def generate_data(graph_signal_matrix_filename, transformer=None):
+def generate_data(graph_signal_matrix_filename, transformer=None,isnew=0):
     '''
     shape is (num_of_samples, 12, num_of_vertices, 1)
     '''
     data = np.load(graph_signal_matrix_filename)
-    keys = data.keys()
-    if 'train' in keys and 'val' in keys and 'test' in keys:
-        for i in generate_from_train_val_test(data, transformer):
+    if isnew ==1:
+        length = data.shape[0]
+        for i in generate_from_data(data, length, transformer,isnew):
             yield i
-    elif 'data' in keys:
-        length = data['data'].shape[0]
-        for i in generate_from_data(data, length, transformer):
-            yield i
-    else:
-        raise KeyError("neither data nor train, val, test is in the data")
+    else: 
+        keys = data.keys()
+        if 'train' in keys and 'val' in keys and 'test' in keys:
+            for i in generate_from_train_val_test(data, transformer):
+                yield i
+        elif 'data' in keys:
+            length = data['data'].shape[0]
+            for i in generate_from_data(data, length, transformer,isnew):
+                yield i
+        else:
+            raise KeyError("neither data nor train, val, test is in the data")
 
 
 def generate_seq(data, train_length, pred_length):
