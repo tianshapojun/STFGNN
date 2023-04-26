@@ -40,11 +40,12 @@ def construct_model(config,new=0):
 
     data = mx.sym.var("data")
     label = mx.sym.var("label")
+    #delete .tolist()
     adj = mx.sym.Variable('adj', shape=adj_mx.shape,
-                          init=mx.init.Constant(value=adj_mx.tolist()))
+                          init=mx.init.Constant(value=adj_mx))
     adj = mx.sym.BlockGrad(adj)
     mask_init_value = mx.init.Constant(value=(adj_mx != 0)
-                                       .astype('float32').tolist())
+                                       .astype('float32'))
 
     filters = config['filters']
     first_layer_embedding_size = config['first_layer_embedding_size']
