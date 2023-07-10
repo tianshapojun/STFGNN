@@ -3,7 +3,8 @@
 import time
 import json
 import argparse
-
+import logging
+from datetime import datetime
 import numpy as np
 import mxnet as mx
 
@@ -22,10 +23,23 @@ config_filename = args.config
 with open(config_filename, 'r') as f:
     config = json.loads(f.read())
 
+logger = logging.getLogger(__name__)
+logger.setLevel(level = logging.INFO)
+current_date = datetime.now().strftime('%Y%m%d%H%M%S')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler = logging.FileHandler("/content/gdrive/MyDrive/Models/STFGNN/"+str(current_date)+"_log.txt")
+handler.setLevel(logging.INFO)
+handler.setFormatter(formatter)
+sh = logging.StreamHandler()  # 往屏幕上输出
+sh.setLevel(logging.INFO)
+sh.setFormatter(formatter)  # 设置屏幕上显示的格式
+logger.addHandler(handler)
+logger.addHandler(sh)
+
 print(json.dumps(config, sort_keys=True, indent=4))
 
 #new = 0,initial data;new = 1,own data;
-new = 0
+new = 1
 net = construct_model(config,new)
 
 batch_size = config['batch_size']
@@ -38,12 +52,12 @@ elif isinstance(config['ctx'], int):
 
 loaders = []
 true_values = []
-for idx, (x, y) in enumerate(generate_data(graph_signal_matrix_filename,is_new = new)):
+for idx, (x, y) in enumerate(generate_data(graph_signal_matrix_filename,isnew = new)):
     if args.test:
         x = x[: 100]
         y = y[: 100]
     y = y.squeeze(axis=-1)
-    print(x.shape, y.shape)
+    logger.info("Shape of x:"+str(x.shape)+"; Shape of y:"+str(y.shape))
     loaders.append(
         mx.io.NDArrayIter(
             x, y if idx == 0 else None,
@@ -98,9 +112,9 @@ mod.init_optimizer(
 
 num_of_parameters = 0
 for param_name, param_value in mod.get_params()[0].items():
-    # print(param_name, param_value.shape)
+    # logger.info(param_name, param_value.shape)
     num_of_parameters += np.prod(param_value.shape)
-print("Number of Parameters: {}".format(num_of_parameters), flush=True)
+#logger.info("Number of Parameters: {}".format(num_of_parameters), flush=True)
 
 metric = mx.metric.create(['RMSE', 'MAE'], output_names=['pred_output'])
 
@@ -124,16 +138,16 @@ def training(epochs):
             mod.update()
         metric_values = dict(zip(*metric.get()))
 
-        print('training: Epoch: %s, RMSE: %.2f, MAE: %.2f, time: %.2f s' % (
+        logger.info('training: Epoch: %s, RMSE: %.2f, MAE: %.2f, time: %.2f s' % (
             global_epoch, metric_values['rmse'], metric_values['mae'],
-            time.time() - t), flush=True)
+            time.time() - t))
         info.append(metric_values['mae'])
 
         val_loader.reset()
         prediction = mod.predict(val_loader)[1].asnumpy()
         loss = masked_mae_np(val_y, prediction, 0)
-        print('validation: Epoch: %s, loss: %.2f, time: %.2f s' % (
-            global_epoch, loss, time.time() - t), flush=True)
+        logger.info('validation: Epoch: %s, loss: %.2f, time: %.2f s' % (
+            global_epoch, loss, time.time() - t))
         info.append(loss)
 
         if loss < lowest_val_loss:
@@ -149,10 +163,9 @@ def training(epochs):
                     masked_mse_np(y, x, 0) ** 0.5
                 ))
             mae, mape, rmse = tmp_info[-1]
-            print('test: Epoch: {}, MAE: {:.2f}, MAPE: {:.2f}, RMSE: {:.2f}, '
+            logger.info('test: Epoch: {}, MAE: {:.2f}, MAPE: {:.2f}, RMSE: {:.2f}, '
                   'time: {:.2f}s'.format(
                     global_epoch, mae, mape, rmse, time.time() - t))
-            print(flush=True)
             info.extend((mae, mape, rmse))
             info.append(tmp_info)
             all_info.append(info)
@@ -166,10 +179,10 @@ if args.test:
 training(epochs)
 
 the_best = min(all_info, key=lambda x: x[2])
-print('step: {}\ntraining loss: {:.2f}\nvalidation loss: {:.2f}\n'
+logger.info('step: {}\ntraining loss: {:.2f}\nvalidation loss: {:.2f}\n'
       'tesing: MAE: {:.2f}\ntesting: MAPE: {:.2f}\n'
       'testing: RMSE: {:.2f}\n'.format(*the_best))
-print(the_best)
+logger.info(the_best)
 
 if args.save:
     mod.save_checkpoint('STSGCN', epochs)
